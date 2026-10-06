@@ -1,0 +1,14 @@
+{
+  "name": "prompt-cache-timer",
+  "owner": { "name": "Alexey" },
+  "description": "Prompt Cache Timer for Claude Code",
+  "plugins": [
+    {
+      "name": "prompt-cache-timer",
+      "source": "./",
+      "description": "Counts down until the prompt cache expires; session cost at API prices; warm-up and miss prices; auto warm-up",
+      "category": "productivity",
+      "tags": ["prompt-cache", "cost", "ttl"]
+    }
+  ]
+}

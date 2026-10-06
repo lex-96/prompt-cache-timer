@@ -1,0 +1,47 @@
+{
+  "name": "prompt-cache-timer",
+  "displayName": "Prompt Cache Timer",
+  "version": "1.0.0",
+  "description": "A band above the prompt that counts down until the prompt cache expires, shows the session cost at API prices and what a warm-up or a cache miss would cost, and can keep the cache warm while you are away",
+  "author": {
+    "name": "Alexey",
+    "url": "https://github.com/lex-96"
+  },
+  "homepage": "https://github.com/lex-96/prompt-cache-timer",
+  "repository": "https://github.com/lex-96/prompt-cache-timer",
+  "documentationUrl": "https://github.com/lex-96/prompt-cache-timer#readme",
+  "supportUrl": "https://github.com/lex-96/prompt-cache-timer/issues",
+  "license": "MIT",
+  "keywords": [
+    "prompt-cache",
+    "cache",
+    "ttl",
+    "cost",
+    "tokens",
+    "status",
+    "mod"
+  ],
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "language": {
+      "type": "string",
+      "title": "Language",
+      "description": "Band language. auto: Claude Code's language setting, else the system language",
+      "default": "auto",
+      "options": [
+        "auto",
+        "en",
+        "ru",
+        "uk",
+        "de",
+        "fr",
+        "es",
+        "pt",
+        "it",
+        "ja",
+        "zh",
+        "ko"
+      ]
+    }
+  }
+}
