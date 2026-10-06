@@ -424,6 +424,60 @@ async function readSettings($: EngineInterface): Promise<Readonly<Record<string,
   }
 }
 
+// The band's key at the last redraw: what it showed, less the exact time.
+let shownKey = ''
+
+// Each second: redraw only when what the band shows has changed (a redraw a
+// second shook the band on the desktop), warn before expiry, keep warm.
+async function tick($: EngineInterface) {
+  const t = await $.clock.now()
+  const s = await strings($)
+  const hit = await read($, last)
+  const mode = await read($, ttl)
+  const key = hit === null ? 'none' : JSON.stringify({ ...bandView(hit, mode, t, s), left: 0 })
+  if (key !== shownKey) {
+    shownKey = key
+    await update($, now, () => t)
+  }
+
+  if (hit === null) {
+    return
+  }
+
+  const left = hit.sentAt + TTL_MS[mode] - t
+  const isKeptWarm = (await read($, keepWarm)).isOn
+  if (!isKeptWarm && left > 0 && left <= WARN_MS[mode] && (await read($, warnedFor)) !== hit.sentAt) {
+    await update($, warnedFor, () => hit.sentAt)
+    $.ui.toast(s.toastExpiresIn(clockText(left)))
+  }
+
+  await keepWarmTick($, hit, mode, t)
+}
+
+// /cache with no argument: hide the band, or show it again. Whether it is
+// hidden now.
+async function toggleHidden($: EngineInterface): Promise<boolean> {
+  const hidden = !(await read($, isHidden))
+  await update($, isHidden, () => hidden)
+
+  return hidden
+}
+
+async function hideBand($: EngineInterface) {
+  await update($, isHidden, () => true)
+}
+
+async function toggleDetails($: EngineInterface) {
+  const detailed = !(await read($, isDetailed))
+  await update($, isDetailed, () => detailed)
+}
+
+// The Warm up button: a warm-up takes up to half a minute, so say it started.
+async function warmFromButton($: EngineInterface) {
+  $.ui.toast((await strings($)).cmdWarming)
+  await warm($)
+}
+
 export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     const settings = await readSettings($)
@@ -456,34 +510,7 @@ export const register: Register = (on, options) => {
     await refreshCost($)
     const startedAt = await $.clock.now()
     await update($, now, () => startedAt)
-    // Checked every second, written (and so redrawn) only when what the band
-    // shows has changed: a redraw a second shook the band on the desktop.
-    let shownKey = ''
-    $.clock.every(1000, () => {
-      void (async () => {
-        const t = await $.clock.now()
-        const hit = await read($, last)
-        const mode = await read($, ttl)
-        const key = hit === null ? 'none' : JSON.stringify({ ...bandView(hit, mode, t, s), left: 0 })
-        if (key !== shownKey) {
-          shownKey = key
-          await update($, now, () => t)
-        }
-
-        if (hit === null) {
-          return
-        }
-
-        const left = hit.sentAt + TTL_MS[mode] - t
-        const isKeptWarm = (await read($, keepWarm)).isOn
-        if (!isKeptWarm && left > 0 && left <= WARN_MS[mode] && (await read($, warnedFor)) !== hit.sentAt) {
-          await update($, warnedFor, () => hit.sentAt)
-          $.ui.toast(s.toastExpiresIn(clockText(left)))
-        }
-
-        await keepWarmTick($, hit, mode, t)
-      })()
-    })
+    $.clock.every(1000, () => void tick($))
 
     // A warm-up the previous load had in flight died with it.
     await update($, warmingSince, () => 0)
@@ -564,7 +591,7 @@ export const register: Register = (on, options) => {
       return { text: s.cmdWarming }
     }
 
-    const hidden = await update($, isHidden, h => !h)
+    const hidden = await toggleHidden($)
 
     return { text: hidden ? s.cmdHidden : s.cmdShown }
   })
@@ -591,7 +618,7 @@ export const register: Register = (on, options) => {
         plain
         dimColor
         role="dismiss"
-        onPress={() => update($, isHidden, () => true)}
+        onPress={() => hideBand($)}
       />
     )
 
@@ -698,11 +725,7 @@ export const register: Register = (on, options) => {
               <Button
                 key="warm"
                 label={warmLabel}
-                onPress={() => {
-                  // A warm-up takes up to half a minute: say it started.
-                  $.ui.toast(s.cmdWarming)
-                  void warm($)
-                }}
+                onPress={() => warmFromButton($)}
               />
             )}
             <Button
@@ -710,7 +733,7 @@ export const register: Register = (on, options) => {
               label="ⓘ"
               plain
               dimColor
-              onPress={() => update($, isDetailed, d => !d)}
+              onPress={() => toggleDetails($)}
             />
             {hide}
           </Box>

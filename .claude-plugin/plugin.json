@@ -26,22 +26,8 @@
     "language": {
       "type": "string",
       "title": "Language",
-      "description": "Band language. auto: Claude Code's language setting, else the system language",
-      "default": "auto",
-      "options": [
-        "auto",
-        "en",
-        "ru",
-        "uk",
-        "de",
-        "fr",
-        "es",
-        "pt",
-        "it",
-        "ja",
-        "zh",
-        "ko"
-      ]
+      "description": "Band language: auto, en, ru, uk, de, fr, es, pt, it, ja, zh or ko. auto (or anything else) follows Claude Code's language setting, else the system language",
+      "default": "auto"
     }
   }
 }

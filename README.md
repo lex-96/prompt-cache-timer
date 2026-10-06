@@ -52,10 +52,27 @@ From the Claude plugin directory, or from this repository:
 
 ## What it reads and does
 
-- Reads, inside Claude Code: the token usage of each model response, the session cost and context fill as `/cost` and the status line report them, the `language` and `promptCacheTtl` settings, and the `CLAUDE_CODE_PROMPT_CACHE_TTL`, `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX` and `CLAUDE_CODE_USE_FOUNDRY` environment variables.
+- Reads, inside Claude Code: the token usage of each model response, the session cost and context fill as `/cost` and the status line report them, and the usage windows a subscription reports.
+- Reads Claude Code's merged settings once per session start and uses exactly two keys of them, `language` and `promptCacheTtl`; nothing else in them is kept or used.
+- Reads four environment variables, none of them a credential: `CLAUDE_CODE_PROMPT_CACHE_TTL`, `CLAUDE_CODE_USE_BEDROCK`, `CLAUDE_CODE_USE_VERTEX` and `CLAUDE_CODE_USE_FOUNDRY`.
+- Reads no API key, token or other credential, and nothing it reads leaves the band.
 - Stores one value on your machine: the TTL you chose with `/cache`.
 - Sends nothing anywhere. A warm-up, manual or automatic, is a one-word request through your own Claude Code session over its existing conversation; it uses your plan or API key like any request.
 - Prices come from Anthropic's published list prices for Claude models; models it does not know show no warm-up or miss price.
+
+## Hooks
+
+Every hook observes and passes the event on unchanged, except `/cache`, which the plugin answers itself.
+
+| Hook | What it does |
+| --- | --- |
+| `session.start` | Picks the language and the TTL, registers `/cache`, starts the once-a-second timer. |
+| `turn.step` | Reads the cache usage of each model response; the response streams through untouched. |
+| `turn.start`, `turn.complete` | Read the session cost for the turn's cost. |
+| `classic.PostModelSwitch` | Reads the TTL a model switch reports and restarts the timer: a switch forfeits the cache. Changes nothing in the switch. |
+| `session.end` | On `/clear`, restarts the timer. |
+| `command.run` for `cache` | Answers `/cache` and its arguments. Other commands, including other plugins' and those the model runs, pass through untouched. |
+| `ui.render` for `AbovePrompt` | Draws the band above the prompt; gives way to a survey there. |
 
 ## License
 
